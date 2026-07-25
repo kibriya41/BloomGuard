@@ -120,7 +120,7 @@ const MOCK_PLANTS: PlantItem[] = [
     petFriendly: false,
     wateringFrequencyDays: 12,
     shortDescription: 'Fast-growing trailing vine featuring heart-shaped leaves with bright golden variegation.',
-    image: 'https://images.unsplash.com/photo-1596724817763-9219f67ea89a?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1572688484438-313a6e50c333?auto=format&fit=crop&w=800&q=80',
     popularity: 96,
     createdAt: '2026-03-05',
   },

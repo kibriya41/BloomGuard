@@ -23,6 +23,7 @@ import {
   Sparkles,
   ArrowUpRight,
   Heart,
+  Loader2,
 } from 'lucide-react';
 import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
@@ -172,19 +173,107 @@ export default function PlantDetailsPage() {
       }
     : mockFallback;
 
+  const rawRelated = apiData?.relatedPlants;
+
+  const relatedPlantsList =
+    rawRelated && rawRelated.length > 0
+      ? rawRelated.map((rp: any) => ({
+          _id: rp._id,
+          name: rp.name,
+          scientificName: rp.scientificName,
+          category: rp.category,
+          image:
+            rp.images && rp.images.length > 0
+              ? rp.images[0]
+              : 'https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=600&q=80',
+        }))
+      : [
+          {
+            _id: 'snake-plant',
+            name: 'Snake Plant',
+            scientificName: 'Dracaena trifasciata',
+            category: 'Succulent',
+            image: 'https://images.unsplash.com/photo-1585687433141-f1e3f9065f7a?auto=format&fit=crop&w=600&q=80',
+          },
+          {
+            _id: 'spider-plant',
+            name: 'Spider Plant',
+            scientificName: 'Chlorophytum comosum',
+            category: 'Foliage',
+            image: 'https://images.unsplash.com/photo-1572688484438-313a6e50c333?auto=format&fit=crop&w=600&q=80',
+          },
+          {
+            _id: 'parlor-palm',
+            name: 'Parlor Palm',
+            scientificName: 'Chamaedorea elegans',
+            category: 'Palm',
+            image: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80',
+          },
+        ];
+
+  const dynamicCommonIssues =
+    plant.commonIssues && plant.commonIssues.length > 0
+      ? plant.commonIssues
+      : [
+          {
+            issue:
+              plant.category === 'Succulent' || plant.category === 'Cacti'
+                ? 'Mushy Base or Root Rot'
+                : 'Yellowing Leaves',
+            solution:
+              plant.category === 'Succulent' || plant.category === 'Cacti'
+                ? 'Usually caused by overwatering or soil retaining excess moisture. Allow soil to dry 100% between waterings.'
+                : 'Usually a sign of overwatering or soil retaining too much moisture. Allow top soil to dry thoroughly.',
+          },
+          {
+            issue:
+              plant.light?.toLowerCase().includes('bright') || plant.light?.toLowerCase().includes('direct')
+                ? 'Pale Foliage & Stretched Stems'
+                : 'Brown Crispy Leaf Tips & Edges',
+            solution:
+              plant.light?.toLowerCase().includes('bright') || plant.light?.toLowerCase().includes('direct')
+                ? 'Plant is seeking more sun. Move closer to a bright east or south-facing window.'
+                : 'Low ambient room humidity. Mist fronds regularly or group near a room humidifier.',
+          },
+          {
+            issue: 'Slow Seasonal Growth',
+            solution:
+              'Feed monthly with a balanced organic liquid fertilizer during active spring & summer growth seasons.',
+          },
+        ];
+
   // Image Gallery Active State
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [addedToGarden, setAddedToGarden] = useState(false);
+  const [addingToGarden, setAddingToGarden] = useState(false);
 
-  const handleAddToGarden = () => {
+  const handleAddToGarden = async () => {
     if (!user) {
       router.push('/login');
       return;
     }
-    setAddedToGarden(true);
-    setTimeout(() => {
-      router.push(`/my-garden`);
-    }, 1200);
+    if (addedToGarden) {
+      router.push('/my-garden');
+      return;
+    }
+    setAddingToGarden(true);
+    try {
+      await api.post('/my-garden', {
+        plantId: plant._id,
+        customName: plant.name,
+        scientificName: plant.scientificName,
+        category: plant.category,
+        images: plant.images,
+        wateringFrequencyDays: plant.wateringFrequencyDays,
+      });
+      setAddedToGarden(true);
+      setTimeout(() => router.push('/my-garden'), 1200);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? 'Failed to add plant. Please try again.';
+      alert(msg);
+    } finally {
+      setAddingToGarden(false);
+    }
   };
 
   if (isLoading) {
@@ -322,17 +411,22 @@ export default function PlantDetailsPage() {
                 <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToGarden}
-                    disabled={addedToGarden}
+                    disabled={addedToGarden || addingToGarden}
                     className={`flex-1 flex items-center justify-center gap-2 py-4 px-8 rounded-2xl font-bold text-base shadow-lg transition-all ${
                       addedToGarden
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-forest text-white hover:bg-forest-hover hover:scale-[1.02] shadow-forest/20'
+                        : 'bg-forest text-white hover:bg-forest-hover hover:scale-[1.02] shadow-forest/20 disabled:opacity-70'
                     }`}
                   >
                     {addedToGarden ? (
                       <>
                         <Check className="w-5 h-5" />
                         <span>Added to Your Garden!</span>
+                      </>
+                    ) : addingToGarden ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Adding...</span>
                       </>
                     ) : (
                       <>
@@ -431,8 +525,8 @@ export default function PlantDetailsPage() {
           </div>
         </div>
 
-        {/* 3. Common Issues & Solutions */}
-        {plant.commonIssues && plant.commonIssues.length > 0 && (
+        {/* 3. Common Issues & Solutions (Troubleshooting & Diagnostics) */}
+        {dynamicCommonIssues.length > 0 && (
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 mb-16">
             <div className="bg-white rounded-3xl border border-gray-200/80 p-8 sm:p-10 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
@@ -450,13 +544,13 @@ export default function PlantDetailsPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                {plant.commonIssues.map((item, idx) => (
+                {dynamicCommonIssues.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-6 rounded-2xl bg-[#FAF9F6] border border-gray-200/80 space-y-2"
+                    className="p-6 rounded-2xl bg-[#FAF9F6] border border-gray-200/80 space-y-2 hover:border-amber-200 transition-colors"
                   >
                     <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-terracotta" />
+                      <span className="w-2 h-2 rounded-full bg-terracotta flex-shrink-0" />
                       <span>{item.issue}</span>
                     </h3>
                     <p className="text-sm text-gray-600 leading-relaxed pl-4">
@@ -469,7 +563,7 @@ export default function PlantDetailsPage() {
           </div>
         )}
 
-        {/* 4. Related Plants Section */}
+        {/* 4. Similar Botanical Species Section */}
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-extrabold text-gray-900">
@@ -485,62 +579,36 @@ export default function PlantDetailsPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="rounded-2xl bg-white border border-gray-200/80 p-5 shadow-sm space-y-3">
-              <div className="relative h-48 rounded-xl overflow-hidden bg-gray-100">
-                <Image
-                  src="https://images.unsplash.com/photo-1596724817763-9219f67ea89a?auto=format&fit=crop&w=600&q=80"
-                  alt="Golden Pothos"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg">Golden Pothos</h3>
-              <p className="text-xs text-gray-500 italic">Epipremnum aureum</p>
-              <Link
-                href="/plants/pothos-golden"
-                className="block text-center py-2 rounded-xl bg-sage-light text-forest text-xs font-bold hover:bg-forest hover:text-white transition-colors"
+            {relatedPlantsList.map((relatedPlant) => (
+              <div
+                key={relatedPlant._id}
+                className="group rounded-2xl bg-white border border-gray-200/80 p-5 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
               >
-                View Details
-              </Link>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-gray-200/80 p-5 shadow-sm space-y-3">
-              <div className="relative h-48 rounded-xl overflow-hidden bg-gray-100">
-                <Image
-                  src="https://images.unsplash.com/photo-1572688484438-313a6e50c333?auto=format&fit=crop&w=600&q=80"
-                  alt="Spider Plant"
-                  fill
-                  className="object-cover"
-                />
+                <div className="space-y-3">
+                  <div className="relative h-48 rounded-xl overflow-hidden bg-gray-100">
+                    <Image
+                      src={relatedPlant.image}
+                      alt={relatedPlant.name}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg group-hover:text-forest transition-colors">
+                      {relatedPlant.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 italic">{relatedPlant.scientificName}</p>
+                  </div>
+                </div>
+                <Link
+                  href={`/plants/${relatedPlant._id}`}
+                  className="block text-center py-2.5 rounded-xl bg-sage-light text-forest text-xs font-bold hover:bg-forest hover:text-white transition-all duration-200 mt-4"
+                >
+                  View Details
+                </Link>
               </div>
-              <h3 className="font-bold text-gray-900 text-lg">Spider Plant</h3>
-              <p className="text-xs text-gray-500 italic">Chlorophytum comosum</p>
-              <Link
-                href="/plants/spider-plant"
-                className="block text-center py-2 rounded-xl bg-sage-light text-forest text-xs font-bold hover:bg-forest hover:text-white transition-colors"
-              >
-                View Details
-              </Link>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-gray-200/80 p-5 shadow-sm space-y-3">
-              <div className="relative h-48 rounded-xl overflow-hidden bg-gray-100">
-                <Image
-                  src="https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=600&q=80"
-                  alt="Parlor Palm"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg">Parlor Palm</h3>
-              <p className="text-xs text-gray-500 italic">Chamaedorea elegans</p>
-              <Link
-                href="/plants/parlor-palm"
-                className="block text-center py-2 rounded-xl bg-sage-light text-forest text-xs font-bold hover:bg-forest hover:text-white transition-colors"
-              >
-                View Details
-              </Link>
-            </div>
+            ))}
           </div>
         </div>
       </main>
