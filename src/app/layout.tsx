@@ -6,6 +6,11 @@ import { AuthProvider } from '@/lib/authContext';
 export const metadata: Metadata = {
   title: 'BloomGuard - AI-Powered Indoor Plant Care Platform',
   description: 'Manage your plant collections, identify plants using AI, receive personalized care recommendations, and track plant health over time.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
