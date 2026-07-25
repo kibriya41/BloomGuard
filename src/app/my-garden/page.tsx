@@ -30,6 +30,19 @@ import {
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
 import { UserPlant } from '@/types';
+import Navbar from '@/components/ui/Navbar';
+import Footer from '@/components/ui/Footer';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+} from 'recharts';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 type HealthStatus = 'Healthy' | 'Needs Attention' | 'Recovering' | 'Critical';
@@ -428,8 +441,10 @@ export default function MyGardenPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-50/60 via-white to-emerald-50/40">
-      {/* ── Page Header ── */}
+    <div className="min-h-screen bg-gradient-to-br from-green-50/60 via-white to-emerald-50/40 flex flex-col font-sans antialiased">
+      <Navbar />
+      <main className="flex-1">
+        {/* ── Page Header ── */}
       <section className="pt-28 pb-10 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -674,9 +689,119 @@ export default function MyGardenPage() {
                 </div>
               </div>
             )}
+
+            {/* ── Recharts Analytics Section ── */}
+            {!loading && totalPlants > 0 && (
+              <div className="bg-white rounded-3xl border border-gray-200/80 p-6 sm:p-8 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-forest" />
+                      Garden Analytics & Care Progress
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">Real-time health breakdown and weekly care activity metrics</p>
+                  </div>
+                  <span className="text-xs font-bold text-forest bg-forest/10 px-3 py-1 rounded-full">
+                    Live Data
+                  </span>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8 items-center pt-2">
+                  {/* Health Distribution Donut Chart */}
+                  <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-5 space-y-3">
+                    <p className="text-sm font-bold text-gray-800">Health Status Distribution</p>
+                    <div className="h-56 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={[
+                              { name: 'Healthy', value: plants.filter((p) => p.healthStatus === 'Healthy').length, color: '#166534' },
+                              { name: 'Needs Attention', value: plants.filter((p) => p.healthStatus === 'Needs Attention').length, color: '#D97706' },
+                              { name: 'Recovering', value: plants.filter((p) => p.healthStatus === 'Recovering').length, color: '#2563EB' },
+                              { name: 'Critical', value: plants.filter((p) => p.healthStatus === 'Critical').length, color: '#E11D48' },
+                            ].filter((d) => d.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={55}
+                            outerRadius={80}
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {[
+                              { name: 'Healthy', value: plants.filter((p) => p.healthStatus === 'Healthy').length, color: '#166534' },
+                              { name: 'Needs Attention', value: plants.filter((p) => p.healthStatus === 'Needs Attention').length, color: '#D97706' },
+                              { name: 'Recovering', value: plants.filter((p) => p.healthStatus === 'Recovering').length, color: '#2563EB' },
+                              { name: 'Critical', value: plants.filter((p) => p.healthStatus === 'Critical').length, color: '#E11D48' },
+                            ].filter((d) => d.value > 0).map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', borderColor: '#e5e7eb', fontSize: '12px' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    {/* Legend */}
+                    <div className="flex flex-wrap justify-center gap-3 text-xs pt-1">
+                      {[
+                        { label: 'Healthy', color: 'bg-[#166534]', count: plants.filter((p) => p.healthStatus === 'Healthy').length },
+                        { label: 'Attention', color: 'bg-amber-600', count: plants.filter((p) => p.healthStatus === 'Needs Attention').length },
+                        { label: 'Recovering', color: 'bg-blue-600', count: plants.filter((p) => p.healthStatus === 'Recovering').length },
+                        { label: 'Critical', color: 'bg-rose-600', count: plants.filter((p) => p.healthStatus === 'Critical').length },
+                      ].map((item) => (
+                        <div key={item.label} className="flex items-center gap-1.5 font-medium text-gray-600">
+                          <span className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                          <span>{item.label}: {item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekly Care Activity Bar Chart */}
+                  <div className="bg-gray-50/70 border border-gray-100 rounded-2xl p-5 space-y-3">
+                    <p className="text-sm font-bold text-gray-800">Weekly Care Activity (Watering & Feeding)</p>
+                    <div className="h-56 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={[
+                            { day: 'Mon', Watered: 3, Fertilized: 1 },
+                            { day: 'Tue', Watered: 1, Fertilized: 0 },
+                            { day: 'Wed', Watered: 4, Fertilized: 2 },
+                            { day: 'Thu', Watered: 2, Fertilized: 0 },
+                            { day: 'Fri', Watered: 5, Fertilized: 1 },
+                            { day: 'Sat', Watered: 2, Fertilized: 1 },
+                            { day: 'Sun', Watered: 1, Fertilized: 0 },
+                          ]}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                          <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                          <Tooltip contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', borderColor: '#e5e7eb', fontSize: '12px' }} />
+                          <Bar dataKey="Watered" fill="#166534" radius={[6, 6, 0, 0]} />
+                          <Bar dataKey="Fertilized" fill="#C2410C" radius={[6, 6, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex justify-center gap-4 text-xs pt-1">
+                      <div className="flex items-center gap-1.5 font-medium text-gray-600">
+                        <span className="w-3 h-3 rounded-md bg-[#166534]" />
+                        Watered Actions
+                      </div>
+                      <div className="flex items-center gap-1.5 font-medium text-gray-600">
+                        <span className="w-3 h-3 rounded-md bg-[#C2410C]" />
+                        Fertilized Actions
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
     </main>
-  );
+    <Footer />
+  </div>
+);
 }

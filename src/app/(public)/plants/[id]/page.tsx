@@ -129,7 +129,7 @@ export default function PlantDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const plantIdStr = Array.isArray(id) ? id[0] : id;
+  const plantIdStr = (Array.isArray(id) ? id[0] : id) as string;
 
   // React Query fetching with fallback to detailed mock object
   const { data: apiData, isLoading } = useQuery({
@@ -175,7 +175,7 @@ export default function PlantDetailsPage() {
 
   const rawRelated = apiData?.relatedPlants;
 
-  const relatedPlantsList =
+  const relatedPlantsList: { _id: string; name: string; scientificName: string; category: string; image: string }[] =
     rawRelated && rawRelated.length > 0
       ? rawRelated.map((rp: any) => ({
           _id: rp._id,

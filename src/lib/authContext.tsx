@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (token: string, user: User) => void;
   logout: () => void;
   demoLogin: () => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +39,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.setItem('bloomguard_user', JSON.stringify(newUser));
   };
 
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const merged = { ...prev, ...updatedUser };
+      localStorage.setItem('bloomguard_user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = () => {
     setToken(null);
     setUser(null);
@@ -63,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, demoLogin }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, demoLogin, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
