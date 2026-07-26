@@ -113,11 +113,20 @@ function PostCard({ post, onLike, currentUser }: { post: BlogPost; onLike: (id: 
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
 
-  // Dynamically resolve author info: if the post belongs to the currently
-  // logged-in user, use their live profile data so it stays up-to-date.
-  const isOwn = currentUser && post.authorId && currentUser.id === post.authorId;
-  const displayName   = isOwn ? currentUser!.name   : post.authorName;
-  const displayAvatar = isOwn ? (currentUser!.avatar ?? post.authorAvatar) : post.authorAvatar;
+  // Check if this post belongs to the currently logged-in user
+  const isOwn = !!(
+    currentUser &&
+    post.authorId &&
+    currentUser.id === post.authorId
+  );
+
+  // Server now always returns the real author data via MongoDB populate.
+  // For the logged-in user's own posts, prefer their live session data so
+  // profile updates are reflected immediately without a hard reload.
+  const displayName   = isOwn ? currentUser!.name : post.authorName;
+  const displayAvatar = isOwn
+    ? (currentUser!.avatar || post.authorAvatar)
+    : (post.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80');
 
   const handleLike = () => {
     setLiked((p) => !p);
@@ -157,21 +166,30 @@ function PostCard({ post, onLike, currentUser }: { post: BlogPost; onLike: (id: 
           {post.excerpt}
         </p>
 
+        {/* Author row — always shows real account from MongoDB */}
         <div className="flex items-center gap-2.5 pt-1">
           <img
-            src={displayAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
+            src={displayAvatar}
             alt={displayName}
             className="w-7 h-7 rounded-full object-cover ring-2 ring-gray-100"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).src =
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+            }}
           />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-gray-800 truncate">
+            <p className="text-xs font-semibold text-gray-800 truncate flex items-center gap-1.5">
               {displayName}
               {isOwn && (
-                <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">You</span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full leading-none">
+                  You
+                </span>
               )}
             </p>
             <p className="text-[11px] text-gray-400">
-              {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
+              {post.createdAt
+                ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : 'Recent'}
             </p>
           </div>
         </div>
