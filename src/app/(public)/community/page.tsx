@@ -32,6 +32,7 @@ import Navbar from '@/components/ui/Navbar';
 import Footer from '@/components/ui/Footer';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/authContext';
+import type { User } from '@/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BlogPost {
@@ -41,6 +42,7 @@ interface BlogPost {
   excerpt: string;
   content?: string;
   category: string;
+  authorId?: string;
   authorName: string;
   authorAvatar?: string;
   authorRole?: string;
@@ -107,9 +109,15 @@ function formatLikes(n: number): string {
 }
 
 // ── Post Card ─────────────────────────────────────────────────────────────────
-function PostCard({ post, onLike }: { post: BlogPost; onLike: (id: string) => void }) {
+function PostCard({ post, onLike, currentUser }: { post: BlogPost; onLike: (id: string) => void; currentUser: User | null }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likes);
+
+  // Dynamically resolve author info: if the post belongs to the currently
+  // logged-in user, use their live profile data so it stays up-to-date.
+  const isOwn = currentUser && post.authorId && currentUser.id === post.authorId;
+  const displayName   = isOwn ? currentUser!.name   : post.authorName;
+  const displayAvatar = isOwn ? (currentUser!.avatar ?? post.authorAvatar) : post.authorAvatar;
 
   const handleLike = () => {
     setLiked((p) => !p);
@@ -151,12 +159,17 @@ function PostCard({ post, onLike }: { post: BlogPost; onLike: (id: string) => vo
 
         <div className="flex items-center gap-2.5 pt-1">
           <img
-            src={post.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
-            alt={post.authorName}
+            src={displayAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80'}
+            alt={displayName}
             className="w-7 h-7 rounded-full object-cover ring-2 ring-gray-100"
           />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-gray-800 truncate">{post.authorName}</p>
+            <p className="text-xs font-semibold text-gray-800 truncate">
+              {displayName}
+              {isOwn && (
+                <span className="ml-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">You</span>
+              )}
+            </p>
             <p className="text-[11px] text-gray-400">
               {post.createdAt ? new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent'}
             </p>
@@ -367,7 +380,7 @@ export default function CommunityPage() {
               ) : filtered.length > 0 ? (
                 <div className="grid sm:grid-cols-2 gap-6">
                   {filtered.map((post) => (
-                    <PostCard key={post._id} post={post} onLike={handleLikePost} />
+                    <PostCard key={post._id} post={post} onLike={handleLikePost} currentUser={user} />
                   ))}
                 </div>
               ) : (
